@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from './axios';
 import { 
@@ -33,9 +33,7 @@ const STAGE_COLORS = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Field — MUST live outside StudentProfile so React doesn't remount it on every
-// keystroke (defining it inside would create a new component type each render,
-// causing inputs to lose focus whenever state updates).
+// Field — Stable component
 // ─────────────────────────────────────────────────────────────────────────────
 function Field({ label, fieldKey, type = 'text', options = null, span = 1, editMode, value, onChange }) {
   return (
@@ -72,16 +70,18 @@ function Field({ label, fieldKey, type = 'text', options = null, span = 1, editM
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Section — also outside to be stable
+// Section — Stable component
 // ─────────────────────────────────────────────────────────────────────────────
 function Section({ title, children, action }) {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 h-full flex flex-col">
       <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
         <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">{title}</h3>
         {action}
       </div>
-      {children}
+      <div className="flex-1">
+        {children}
+      </div>
     </div>
   );
 }
@@ -130,25 +130,34 @@ function flattenStudent(s) {
 export default function StudentProfile({ editMode: initialEditMode = false }) {
   const { id }    = useParams();
   const navigate  = useNavigate();
+  const fileInputRef = useRef(null);
 
   const [student,  setStudent]  = useState(null);
   const [loading,  setLoading]  = useState(true);
   const [saving,   setSaving]   = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error,    setError]    = useState('');
   const [saved,    setSaved]    = useState(false);
   const [editMode, setEditMode] = useState(initialEditMode);
   const [form,     setForm]     = useState({});
 
-  useEffect(() => {
+  const fetchStudent = useCallback(() => {
+    setLoading(true);
     axios.get(`/api/students/${id}`)
-      .then(res => { setStudent(res.data); setForm(flattenStudent(res.data)); })
+      .then(res => { 
+        setStudent(res.data); 
+        setForm(flattenStudent(res.data)); 
+      })
       .catch(() => setError('Failed to load student profile.'))
       .finally(() => setLoading(false));
   }, [id]);
 
+  useEffect(() => {
+    fetchStudent();
+  }, [fetchStudent]);
+
   useEffect(() => { setEditMode(initialEditMode); }, [initialEditMode]);
 
-  // useCallback so the reference is stable — prevents child re-mounts
   const handleFieldChange = useCallback((key, val) => {
     setForm(prev => ({ ...prev, [key]: val }));
   }, []);
@@ -179,11 +188,38 @@ export default function StudentProfile({ editMode: initialEditMode = false }) {
     if (initialEditMode) navigate(`/student/${id}`);
   };
 
-  if (loading) return <div className="p-8 flex justify-center text-slate-500">Loading profile...</div>;
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploading(true);
+    const data = new FormData();
+    data.append('document', file);
+    data.append('type', 'Other'); // Could add a prompt for type if needed
+
+    try {
+      await axios.post(`/api/students/${id}/documents`, data, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      fetchStudent(); // Refresh data to show new document
+    } catch (err) {
+      console.error(err);
+      alert('Failed to upload document.');
+    } finally {
+      setUploading(false);
+      e.target.value = ''; // Reset input
+    }
+  };
+
+  const handleDownload = (doc) => {
+    // Assuming storage is linked and accessible via /storage
+    window.open(`${axios.defaults.baseURL}/storage/${doc.file_path}`, '_blank');
+  };
+
+  if (loading && !student) return <div className="p-8 flex justify-center text-slate-500">Loading profile...</div>;
   if (error)   return <div className="p-8 text-red-600">{error}</div>;
   if (!student) return <div className="p-8 text-slate-500">Student not found.</div>;
 
-  // Shorthand for Field props to keep JSX tidy
   const F = (label, fieldKey, type, options, span) => (
     <Field
       key={fieldKey}
@@ -288,7 +324,7 @@ export default function StudentProfile({ editMode: initialEditMode = false }) {
       </div>
 
       {/* Body */}
-      <div className="p-6 flex gap-6 max-w-7xl mx-auto w-full">
+      <div className="p-6 flex gap-6 max-w-7xl mx-auto w-full flex-1">
 
         {/* Left Column */}
         <div className="flex-[2] flex flex-col gap-5">
@@ -339,7 +375,7 @@ export default function StudentProfile({ editMode: initialEditMode = false }) {
               {F('Lead Source',       'source',              'text', SOURCES)}
               {F('Lead Status',       'lead_status',         'text', STATUSES)}
               {F('Visa Status',       'visa_status',         'text', VISA_ST)}
-              {F('Follow-up Due Date','follow_up_due_date',  'date')}
+              {F('Follow-up Due Date', 'follow_up_due_date',  'date')}
 
               {editMode && (
                 <div>
@@ -363,16 +399,40 @@ export default function StudentProfile({ editMode: initialEditMode = false }) {
             </div>
           </Section>
 
-          <Section title="Documents" action={<button className="text-xs text-blue-600 font-semibold hover:underline">+ Upload</button>}>
+          <Section 
+            title="Documents" 
+            action={
+              <button 
+                onClick={() => fileInputRef.current.click()} 
+                disabled={uploading}
+                className="text-xs text-blue-600 font-semibold hover:underline disabled:opacity-50"
+              >
+                {uploading ? 'Uploading...' : '+ Upload'}
+              </button>
+            }
+          >
+            <input 
+              type="file" 
+              className="hidden" 
+              ref={fileInputRef} 
+              onChange={handleFileUpload}
+              accept=".pdf,.jpg,.jpeg,.png"
+            />
             <div className="space-y-3">
               {student.documents && student.documents.length > 0 ? (
                 student.documents.map(doc => (
-                  <div key={doc.id} className="flex items-center justify-between p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer transition-colors">
+                  <div 
+                    key={doc.id} 
+                    onClick={() => handleDownload(doc)}
+                    className="flex items-center justify-between p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer transition-colors"
+                  >
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">PDF</div>
+                      <div className="w-8 h-8 rounded bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">
+                        {doc.file_name.split('.').pop().toUpperCase()}
+                      </div>
                       <div>
-                        <div className="text-sm font-semibold text-slate-800">{doc.name}</div>
-                        <div className="text-xs text-slate-500">{new Date(doc.created_at).toLocaleDateString()}</div>
+                        <div className="text-sm font-semibold text-slate-800 truncate max-w-[150px]">{doc.file_name}</div>
+                        <div className="text-xs text-slate-500">{doc.type} • {new Date(doc.created_at).toLocaleDateString()}</div>
                       </div>
                     </div>
                     <MdDownload className="text-slate-400 hover:text-blue-600" size={20} />

@@ -28,8 +28,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/students/export', [ImportExportController::class, 'export']);
 
     Route::apiResource('students', \App\Http\Controllers\Api\StudentController::class);
+    Route::post('/students/{student}/documents', [\App\Http\Controllers\Api\StudentController::class, 'uploadDocument']);
 
     Route::get('/counselors', function () {
-        return response()->json(\App\Models\User::where('role', 'Counselor')->get());
+        return response()->json(\App\Models\User::where('role', 'like', '%Counselor%')->get());
     });
 });

@@ -361,7 +361,10 @@ function AddStudentModal({ isOpen, onClose, onAdd }) {
   }, [isOpen]);
 
   useEffect(() => {
-    setFormData(mode === 'fast' ? emptyFast : emptyAdv);
+    // When switching to advanced, ensure we have the advanced fields without wiping current ones
+    if (mode === 'advanced') {
+      setFormData(f => ({ ...emptyAdv, ...f }));
+    }
   }, [mode]);
 
   if (!isOpen) return null;
@@ -374,15 +377,32 @@ function AddStudentModal({ isOpen, onClose, onAdd }) {
     e.preventDefault();
     setLoading(true);
     try {
-      const payload = {
-        ...formData,
-        current_stage: 'Inquiry',
-        target_universities: formData.target_universities ? [formData.target_universities] : [],
-      };
-      const res = await axios.post('/api/students', payload);
+      const data = new FormData();
+      
+      // Append all form fields
+      Object.keys(formData).forEach(key => {
+        if (key === 'target_universities') {
+          // If it's a string, convert to array format for backend coercion or just send as string if backend handles it
+          data.append(key, formData[key]);
+        } else {
+          data.append(key, formData[key] === null ? '' : formData[key]);
+        }
+      });
+
+      data.append('current_stage', 'Inquiry');
+      
+      if (docFile) {
+        data.append('document', docFile);
+      }
+
+      const res = await axios.post('/api/students', data, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
       onAdd(res.data);
       onClose();
       setFormData(emptyFast);
+      setDocFile(null);
       setMode('fast');
     } catch (err) {
       console.error(err);
