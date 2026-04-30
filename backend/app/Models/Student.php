@@ -11,8 +11,9 @@ class Student extends Model
     use HasFactory;
 
     protected $fillable = [
-        'student_id', 'name', 'dob', 'gender', 'nationality', 'email', 'phone', 'address', 'passport_number', 
-        'type', 'highest_qualification', 'institution', 'gpa', 'english_proficiency', 'english_score',
+        'student_id', 'name', 'dob', 'gender', 'nationality', 'email', 'phone', 'address', 'passport_number',
+        'type', 'intake', 'preferred_program', 'level', 'lead_status', 'remarks',
+        'highest_qualification', 'institution', 'gpa', 'english_proficiency', 'english_score',
         'target_degree', 'target_countries', 'target_universities', 'source', 'campaign_name', 'import_date',
         'destination', 'current_stage', 'drop_out_flag', 'drop_out_reason', 'counselor_id', 'last_contact_date',
         'is_whatsapp_enabled', 'follow_up_due_date', 'visa_status'

@@ -40,12 +40,18 @@ class StudentController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'student_id' => 'required|unique:students',
             'name' => 'required|string|max:255',
-            'type' => 'in:APIIT,External',
+            'email' => 'nullable|email',
+            'phone' => 'nullable|string',
+            'counselor_id' => 'nullable|exists:users,id',
         ]);
 
-        return Student::create($request->all());
+        $data = $request->all();
+        if (empty($data['student_id'])) {
+            $data['student_id'] = 'CB0' . rand(1000, 9999);
+        }
+
+        return Student::create($data);
     }
 
     public function show($id)

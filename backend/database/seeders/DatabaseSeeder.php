@@ -17,19 +17,24 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
+        // Admin account
         User::factory()->create([
-            'name' => 'Counselor Head User',
-            'email' => 'admin@example.com',
+            'name'     => 'Admin',
+            'email'    => 'admin@example.com',
             'password' => bcrypt('password'),
-            'role' => 'Counselor Head',
+            'role'     => 'Counselor Head',
         ]);
 
-        User::factory()->create([
-            'name' => 'Standard Counselor',
-            'email' => 'counselor@example.com',
-            'password' => bcrypt('password'),
-            'role' => 'Counselor',
-        ]);
+        // Education consultants
+        $consultants = ['Diluki', 'Tharuka', 'Nimni', 'Ashwini'];
+        foreach ($consultants as $consultant) {
+            User::factory()->create([
+                'name' => $consultant,
+                'email' => strtolower($consultant) . '@apiit.lk',
+                'password' => bcrypt('password'),
+                'role' => 'Counselor',
+            ]);
+        }
 
         \App\Models\Student::factory(150)->create();
     }
