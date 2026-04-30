@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Student;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class StudentController extends Controller
 {
@@ -13,7 +14,7 @@ class StudentController extends Controller
         $query = Student::query()->with('counselor');
 
         if ($request->has('search')) {
-            $query->where(function($q) use ($request) {
+            $query->where(function ($q) use ($request) {
                 $q->where('name', 'like', '%' . $request->search . '%')
                   ->orWhere('student_id', 'like', '%' . $request->search . '%')
                   ->orWhere('email', 'like', '%' . $request->search . '%')
@@ -29,7 +30,7 @@ class StudentController extends Controller
         if ($request->has('counselor_id') && $request->counselor_id !== 'All') {
             $query->where('counselor_id', $request->counselor_id);
         }
-        
+
         if ($request->has('type') && $request->type !== 'All') {
             $query->where('type', $request->type);
         }
@@ -39,32 +40,71 @@ class StudentController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'nullable|email',
-            'phone' => 'nullable|string',
+        $request->validate([
+            'name'         => 'required|string|max:255',
+            'email'        => 'nullable|email',
+            'phone'        => 'nullable|string',
             'counselor_id' => 'nullable|exists:users,id',
         ]);
 
         $data = $request->all();
+
+        // Generate a unique student ID if not provided
         if (empty($data['student_id'])) {
-            $data['student_id'] = 'CB0' . rand(1000, 9999);
+            do {
+                $candidate = 'CB' . str_pad(rand(10000, 99999), 5, '0', STR_PAD_LEFT);
+            } while (Student::where('student_id', $candidate)->exists());
+            $data['student_id'] = $candidate;
         }
 
-        return Student::create($data);
+        // Ensure sensible defaults
+        $data['drop_out_flag']  = isset($data['drop_out_flag'])  ? (bool) $data['drop_out_flag']  : false;
+        $data['current_stage']  = $data['current_stage']  ?? 'Inquiry';
+        $data['type']           = $data['type']           ?? 'External';
+        $data['source']         = $data['source']         ?? 'Manual';
+
+        // Coerce target_universities to array if it's a plain string
+        if (isset($data['target_universities']) && is_string($data['target_universities'])) {
+            $data['target_universities'] = array_filter(
+                array_map('trim', explode(',', $data['target_universities']))
+            );
+        }
+
+        $student = Student::create($data);
+
+        // Return with counselor relation loaded
+        return $student->load('counselor');
     }
 
     public function show($id)
     {
-        $student = Student::with(['counselor', 'documents'])->findOrFail($id);
-        return $student;
+        return Student::with(['counselor', 'documents'])->findOrFail($id);
     }
 
     public function update(Request $request, $id)
     {
         $student = Student::findOrFail($id);
-        $student->update($request->all());
-        return $student;
+
+        $data = $request->all();
+
+        // Coerce booleans
+        if (array_key_exists('drop_out_flag', $data)) {
+            $data['drop_out_flag'] = (bool) $data['drop_out_flag'];
+        }
+        if (array_key_exists('is_whatsapp_enabled', $data)) {
+            $data['is_whatsapp_enabled'] = (bool) $data['is_whatsapp_enabled'];
+        }
+
+        // Coerce target_universities to array if string
+        if (isset($data['target_universities']) && is_string($data['target_universities'])) {
+            $data['target_universities'] = array_filter(
+                array_map('trim', explode(',', $data['target_universities']))
+            );
+        }
+
+        $student->update($data);
+
+        return $student->load('counselor');
     }
 
     public function destroy($id)
