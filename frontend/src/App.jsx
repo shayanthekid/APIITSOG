@@ -352,7 +352,7 @@ function AddStudentModal({ isOpen, onClose, onAdd }) {
   const [formData, setFormData] = useState(emptyFast);
   const [counselors, setCounselors] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [docFile, setDocFile] = useState(null);
+  const [docFiles, setDocFiles] = useState([]);
 
   useEffect(() => {
     if (isOpen) {
@@ -391,8 +391,10 @@ function AddStudentModal({ isOpen, onClose, onAdd }) {
 
       data.append('current_stage', 'Inquiry');
       
-      if (docFile) {
-        data.append('document', docFile);
+      if (docFiles.length > 0) {
+        docFiles.forEach(file => {
+          data.append('documents[]', file);
+        });
       }
 
       const res = await axios.post('/api/students', data, {
@@ -402,7 +404,7 @@ function AddStudentModal({ isOpen, onClose, onAdd }) {
       onAdd(res.data);
       onClose();
       setFormData(emptyFast);
-      setDocFile(null);
+      setDocFiles([]);
       setMode('fast');
     } catch (err) {
       console.error(err);
@@ -592,15 +594,43 @@ function AddStudentModal({ isOpen, onClose, onAdd }) {
               </div>
 
               <div className="border-t border-slate-200 pt-4">
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">📎 Documents</p>
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">📎 Documents (Max 7MB per file)</p>
                 <div
                   onClick={() => document.getElementById('doc-upload-input').click()}
                   className="border-2 border-dashed border-slate-300 rounded-xl p-5 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all"
                 >
-                  <p className="text-sm font-medium text-slate-600">{docFile ? `📄 ${docFile.name}` : 'Click to attach a document'}</p>
-                  <p className="text-xs text-slate-400 mt-1">Passport copy, transcripts, certificates — PDF or image</p>
-                  <input id="doc-upload-input" type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" onChange={e => setDocFile(e.target.files[0])} />
+                  <p className="text-sm font-medium text-slate-600">
+                    {docFiles.length > 0 ? `📁 ${docFiles.length} files selected` : 'Click to attach documents'}
+                  </p>
+                  <p className="text-xs text-slate-400 mt-1">Passport copy, transcripts, certificates — PDF or image (PDF, JPG, PNG)</p>
+                  <input 
+                    id="doc-upload-input" 
+                    type="file" 
+                    className="hidden" 
+                    multiple 
+                    accept=".pdf,.jpg,.jpeg,.png" 
+                    onChange={e => {
+                      const files = Array.from(e.target.files);
+                      const validFiles = files.filter(f => {
+                        const isValidType = ['application/pdf', 'image/jpeg', 'image/png'].includes(f.type);
+                        const isValidSize = f.size <= 7 * 1024 * 1024; // 7MB
+                        if (!isValidType) alert(`${f.name} is not a PDF or image.`);
+                        if (!isValidSize) alert(`${f.name} exceeds 7MB limit.`);
+                        return isValidType && isValidSize;
+                      });
+                      setDocFiles(validFiles);
+                    }} 
+                  />
                 </div>
+                {docFiles.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {docFiles.map((f, i) => (
+                      <div key={i} className="text-[10px] text-slate-500 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span> {f.name} ({(f.size/1024/1024).toFixed(2)} MB)
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <p className="text-xs text-slate-400 mt-2">📌 More documents can be uploaded from the student profile after creation.</p>
               </div>
 

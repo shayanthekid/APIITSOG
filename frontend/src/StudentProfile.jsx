@@ -189,22 +189,38 @@ export default function StudentProfile({ editMode: initialEditMode = false }) {
   };
 
   const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+
+    // Strict Validation
+    const validFiles = files.filter(f => {
+      const isValidType = ['application/pdf', 'image/jpeg', 'image/png'].includes(f.type);
+      const isValidSize = f.size <= 7 * 1024 * 1024; // 7MB
+      if (!isValidType) alert(`${f.name} is not a PDF or image.`);
+      if (!isValidSize) alert(`${f.name} exceeds 7MB limit.`);
+      return isValidType && isValidSize;
+    });
+
+    if (validFiles.length === 0) {
+      e.target.value = '';
+      return;
+    }
 
     setUploading(true);
     const data = new FormData();
-    data.append('document', file);
-    data.append('type', 'Other'); // Could add a prompt for type if needed
+    validFiles.forEach(file => {
+      data.append('documents[]', file);
+    });
+    data.append('type', 'Additional Document');
 
     try {
       await axios.post(`/api/students/${id}/documents`, data, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      fetchStudent(); // Refresh data to show new document
+      fetchStudent(); // Refresh data to show new documents
     } catch (err) {
       console.error(err);
-      alert('Failed to upload document.');
+      alert('Failed to upload document(s).');
     } finally {
       setUploading(false);
       e.target.value = ''; // Reset input
@@ -212,8 +228,8 @@ export default function StudentProfile({ editMode: initialEditMode = false }) {
   };
 
   const handleDownload = (doc) => {
-    // Assuming storage is linked and accessible via /storage
-    window.open(`${axios.defaults.baseURL}/storage/${doc.file_path}`, '_blank');
+    // Relative path works now because of Vite proxy for /storage
+    window.open(`/storage/${doc.file_path}`, '_blank');
   };
 
   if (loading && !student) return <div className="p-8 flex justify-center text-slate-500">Loading profile...</div>;
@@ -415,6 +431,7 @@ export default function StudentProfile({ editMode: initialEditMode = false }) {
               type="file" 
               className="hidden" 
               ref={fileInputRef} 
+              multiple
               onChange={handleFileUpload}
               accept=".pdf,.jpg,.jpeg,.png"
             />
@@ -427,15 +444,15 @@ export default function StudentProfile({ editMode: initialEditMode = false }) {
                     className="flex items-center justify-between p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">
+                      <div className="w-8 h-8 rounded bg-blue-100 text-blue-600 flex items-center justify-center text-[10px] font-bold">
                         {doc.file_name.split('.').pop().toUpperCase()}
                       </div>
-                      <div>
-                        <div className="text-sm font-semibold text-slate-800 truncate max-w-[150px]">{doc.file_name}</div>
-                        <div className="text-xs text-slate-500">{doc.type} • {new Date(doc.created_at).toLocaleDateString()}</div>
+                      <div className="overflow-hidden">
+                        <div className="text-sm font-semibold text-slate-800 truncate">{doc.file_name}</div>
+                        <div className="text-[10px] text-slate-500">{doc.type} • {new Date(doc.created_at).toLocaleDateString()}</div>
                       </div>
                     </div>
-                    <MdDownload className="text-slate-400 hover:text-blue-600" size={20} />
+                    <MdDownload className="text-slate-400 hover:text-blue-600 shrink-0" size={20} />
                   </div>
                 ))
               ) : (

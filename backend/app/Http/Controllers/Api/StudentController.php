@@ -47,7 +47,7 @@ class StudentController extends Controller
             'email'        => 'nullable|email',
             'phone'        => 'nullable|string',
             'counselor_id' => 'nullable|exists:users,id',
-            'document'     => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120', // 5MB max
+            'documents.*'  => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:7168', // 7MB max
         ]);
 
         $data = $request->all();
@@ -75,17 +75,18 @@ class StudentController extends Controller
 
         $student = Student::create($data);
 
-        // Handle initial document upload if present
-        if ($request->hasFile('document')) {
-            $file = $request->file('document');
-            $path = $file->store('documents/' . $student->id, 'public');
-            
-            Document::create([
-                'student_id' => $student->id,
-                'type'       => 'Initial Document',
-                'file_path'  => $path,
-                'file_name'  => $file->getClientOriginalName(),
-            ]);
+        // Handle multiple document uploads if present
+        if ($request->hasFile('documents')) {
+            foreach ($request->file('documents') as $file) {
+                $path = $file->store('documents/' . $student->id, 'public');
+                
+                Document::create([
+                    'student_id' => $student->id,
+                    'type'       => 'Academic/Identity',
+                    'file_path'  => $path,
+                    'file_name'  => $file->getClientOriginalName(),
+                ]);
+            }
         }
 
         return $student->load(['counselor', 'documents']);
@@ -127,21 +128,26 @@ class StudentController extends Controller
         $student = Student::findOrFail($id);
 
         $request->validate([
-            'document' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
-            'type'     => 'nullable|string|max:100',
+            'documents.*' => 'required|file|mimes:pdf,jpg,jpeg,png|max:7168',
+            'type'        => 'nullable|string|max:100',
         ]);
 
-        $file = $request->file('document');
-        $path = $file->store('documents/' . $student->id, 'public');
+        $uploaded = [];
+        if ($request->hasFile('documents')) {
+            foreach ($request->file('documents') as $file) {
+                $path = $file->store('documents/' . $student->id, 'public');
 
-        $doc = Document::create([
-            'student_id' => $student->id,
-            'type'       => $request->type ?? 'Other',
-            'file_path'  => $path,
-            'file_name'  => $file->getClientOriginalName(),
-        ]);
+                $doc = Document::create([
+                    'student_id' => $student->id,
+                    'type'       => $request->type ?? 'Other',
+                    'file_path'  => $path,
+                    'file_name'  => $file->getClientOriginalName(),
+                ]);
+                $uploaded[] = $doc;
+            }
+        }
 
-        return response()->json($doc, 201);
+        return response()->json($uploaded, 201);
     }
 
     public function destroy($id)
