@@ -13,7 +13,7 @@ class StudentController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Student::query()->with('counselor');
+        $query = Student::query()->with(['counselor', 'documents']);
 
         if ($request->has('search')) {
             $query->where(function ($q) use ($request) {
@@ -40,6 +40,23 @@ class StudentController extends Controller
         return $query->get();
     }
 
+    public function reminders(Request $request)
+    {
+        $user = $request->user();
+        
+        $query = Student::where('drop_out_flag', false)
+            ->whereNotNull('follow_up_due_date')
+            ->whereDate('follow_up_due_date', '<=', now());
+            
+        // Assuming we want to show only tasks assigned to the logged-in counselor
+        $query->where('counselor_id', $user->id);
+
+        // Order by due date ascending so oldest tasks show first
+        $query->orderBy('follow_up_due_date', 'asc');
+
+        return $query->get();
+    }
+
     public function store(Request $request)
     {
         $request->validate([
@@ -47,7 +64,7 @@ class StudentController extends Controller
             'email'        => 'nullable|email',
             'phone'        => 'nullable|string',
             'counselor_id' => 'nullable|exists:users,id',
-            'documents.*'  => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:7168', // 7MB max
+            'documents.*'  => 'nullable|file|mimes:pdf,jpg,jpeg,png,docx,doc|max:20480', // 20MB max
         ]);
 
         $data = $request->all();
@@ -128,8 +145,8 @@ class StudentController extends Controller
         $student = Student::findOrFail($id);
 
         $request->validate([
-            'documents.*' => 'required|file|mimes:pdf,jpg,jpeg,png|max:7168',
-            'type'        => 'nullable|string|max:100',
+            'documents.*' => 'required|file|mimes:pdf,jpg,jpeg,png,docx,doc|max:20480',
+            'type'        => 'required|string|max:100', // Making type required for the dedicated slots
         ]);
 
         $uploaded = [];
@@ -137,17 +154,44 @@ class StudentController extends Controller
             foreach ($request->file('documents') as $file) {
                 $path = $file->store('documents/' . $student->id, 'public');
 
+                // Check for existing document of this type to handle versioning
+                $lastVersionDoc = Document::where('student_id', $student->id)
+                                    ->where('type', $request->type)
+                                    ->orderBy('version', 'desc')
+                                    ->first();
+                
+                $newVersion = $lastVersionDoc ? $lastVersionDoc->version + 1 : 1;
+
                 $doc = Document::create([
                     'student_id' => $student->id,
-                    'type'       => $request->type ?? 'Other',
+                    'type'       => $request->type,
                     'file_path'  => $path,
                     'file_name'  => $file->getClientOriginalName(),
+                    'status'     => 'Uploaded',
+                    'version'    => $newVersion,
                 ]);
                 $uploaded[] = $doc;
             }
         }
 
         return response()->json($uploaded, 201);
+    }
+
+    public function updateDocumentStatus(Request $request, $id, $documentId)
+    {
+        $document = Document::where('student_id', $id)->findOrFail($documentId);
+
+        $request->validate([
+            'status'           => 'required|string|in:Uploaded,Verified,Rejected',
+            'rejection_reason' => 'nullable|string|required_if:status,Rejected',
+        ]);
+
+        $document->update([
+            'status'           => $request->status,
+            'rejection_reason' => $request->status === 'Rejected' ? $request->rejection_reason : null,
+        ]);
+
+        return response()->json($document);
     }
 
     public function destroy($id)

@@ -10,7 +10,7 @@ class Document extends Model
     /** @use HasFactory<\Database\Factories\DocumentFactory> */
     use HasFactory;
 
-    protected $fillable = ['student_id', 'type', 'file_path', 'file_name'];
+    protected $fillable = ['student_id', 'type', 'file_path', 'file_name', 'status', 'rejection_reason', 'version'];
 
     public function student()
     {

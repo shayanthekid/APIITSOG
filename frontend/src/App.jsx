@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { 
   MdDashboard, MdPeople, MdTimeline, MdFolder, 
   MdAttachMoney, MdBarChart, MdPerson, MdSettings,
   MdSearch, MdAdd, MdDownload, MdUpload, MdVisibility, MdEdit, MdEmail, MdLogout, MdClose,
-  MdCheckCircle, MdWarning, MdTableChart
+  MdCheckCircle, MdWarning, MdTableChart, MdNotifications, MdNotificationsActive
 } from 'react-icons/md';
 import { AgGridReact } from 'ag-grid-react';
 import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
@@ -17,7 +19,7 @@ import KanbanBoard from './KanbanBoard';
 import Login from './Login';
 import StudentProfile from './StudentProfile';
 import axios, { clearToken, getToken } from './axios';
-
+import Documents from './Documents';
 function Dashboard({ globalSearch, refreshTrigger, onExport }) {
   const [viewMode, setViewMode] = useState(() => {
     return localStorage.getItem('crm_view_mode') || 'grid';
@@ -26,6 +28,7 @@ function Dashboard({ globalSearch, refreshTrigger, onExport }) {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [gridApi, setGridApi] = useState(null);
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
 
   // Dropdown filter states
   const [countryFilter, setCountryFilter] = useState(() => localStorage.getItem('crm_filter_country') || '');
@@ -264,7 +267,60 @@ function Dashboard({ globalSearch, refreshTrigger, onExport }) {
                 Kanban Board
               </button>
             </div>
-            <button onClick={onExport} className="border border-slate-300 rounded-md px-4 py-1.5 text-sm font-medium hover:bg-slate-50 bg-white flex items-center gap-1.5"><MdDownload size={16}/>Export Excel</button>
+            <div className="relative">
+              <button 
+                onClick={() => setExportMenuOpen(!exportMenuOpen)} 
+                className="border border-slate-300 rounded-md px-4 py-1.5 text-sm font-medium hover:bg-slate-50 bg-white flex items-center gap-1.5"
+              >
+                <MdDownload size={16}/> Export Report
+              </button>
+              {exportMenuOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-lg shadow-lg z-50 py-1">
+                  <button 
+                    onClick={() => {
+                      setExportMenuOpen(false);
+                      const selectedNodes = gridApi?.getSelectedNodes() || [];
+                      if (selectedNodes.length === 0) {
+                        alert('Please select at least one student from the table to export.');
+                        return;
+                      }
+                      onExport('pdf', selectedNodes.map(n => n.data));
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                  >
+                    Export to PDF Report
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setExportMenuOpen(false);
+                      const selectedNodes = gridApi?.getSelectedNodes() || [];
+                      if (selectedNodes.length === 0) {
+                        alert('Please select at least one student from the table to export.');
+                        return;
+                      }
+                      
+                      const csvData = gridApi.getDataAsCsv({ onlySelected: true });
+                      const base64Data = btoa(unescape(encodeURIComponent(csvData)));
+                      
+                      const form = document.createElement('form');
+                      form.method = 'POST';
+                      form.action = '/api/export/bounce';
+                      
+                      const i1 = document.createElement('input'); i1.type = 'hidden'; i1.name = 'content'; i1.value = base64Data; form.appendChild(i1);
+                      const i2 = document.createElement('input'); i2.type = 'hidden'; i2.name = 'filename'; i2.value = `SG_Students_Export_${new Date().toISOString().slice(0, 10)}.csv`; form.appendChild(i2);
+                      const i3 = document.createElement('input'); i3.type = 'hidden'; i3.name = 'mime_type'; i3.value = 'text/csv'; form.appendChild(i3);
+                      
+                      document.body.appendChild(form);
+                      form.submit();
+                      document.body.removeChild(form);
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                  >
+                    Export to CSV (Excel)
+                  </button>
+                </div>
+              )}
+            </div>
         </div>
       </div>
       
@@ -807,6 +863,95 @@ function ImportModal({ isOpen, onClose, onImported }) {
   );
 }
 
+// ── Reminders Menu ─────────────────────────────────────────────────────────────
+function RemindersMenu({ refreshTrigger }) {
+  const [reminders, setReminders] = useState([]);
+  const [isOpen, setIsOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const fetchReminders = useCallback(() => {
+    setLoading(true);
+    axios.get('/api/reminders')
+      .then(res => setReminders(res.data))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    fetchReminders();
+    const interval = setInterval(fetchReminders, 60000); // Check every minute
+    return () => clearInterval(interval);
+  }, [fetchReminders, refreshTrigger]);
+
+  return (
+    <div className="relative">
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="relative p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors focus:outline-none"
+        title="Pending Tasks"
+      >
+        <MdNotifications size={24} />
+        {reminders.length > 0 && (
+          <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-white">
+            {reminders.length > 9 ? '9+' : reminders.length}
+          </span>
+        )}
+      </button>
+
+      {isOpen && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>
+          <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden z-50 animate-in fade-in zoom-in duration-200">
+            <div className="px-4 py-3 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+              <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                <MdNotificationsActive className="text-blue-600" /> Pending Tasks
+              </h3>
+              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-semibold">{reminders.length}</span>
+            </div>
+            <div className="max-h-[60vh] overflow-y-auto">
+              {loading ? (
+                <div className="p-4 text-center text-sm text-slate-500">Loading...</div>
+              ) : reminders.length === 0 ? (
+                <div className="p-6 text-center text-sm text-slate-500 flex flex-col items-center gap-2">
+                  <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-slate-300">
+                    <MdCheckCircle size={24} />
+                  </div>
+                  You're all caught up!
+                </div>
+              ) : (
+                <div className="flex flex-col divide-y divide-slate-100">
+                  {reminders.map(r => {
+                    const dateObj = new Date(r.follow_up_due_date);
+                    const isOverdue = dateObj < new Date(new Date().setHours(0,0,0,0));
+                    return (
+                      <Link 
+                        key={r.id} 
+                        to={`/student/${r.id}`}
+                        onClick={() => setIsOpen(false)}
+                        className="p-3 hover:bg-slate-50 transition-colors flex flex-col gap-1"
+                      >
+                        <div className="flex justify-between items-start">
+                          <span className="text-sm font-semibold text-slate-800">{r.name}</span>
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${isOverdue ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                            {isOverdue ? 'Overdue' : 'Due Today'}
+                          </span>
+                        </div>
+                        <div className="text-xs text-slate-500 flex items-center gap-1">
+                          <span className="font-medium text-slate-700">{r.student_id}</span> • {r.current_stage}
+                        </div>
+                      </Link>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ── App Content ───────────────────────────────────────────────────────────────
 function AppContent({ user, onLogout }) {
   const [globalSearch, setGlobalSearch] = useState('');
@@ -825,37 +970,60 @@ function AppContent({ user, onLogout }) {
     }
   };
 
-  const handleExport = async (selectedIds) => {
+  const handleExport = async (type, dataPayload) => {
     try {
-      const params = selectedIds?.length ? `?ids=${selectedIds.join(',')}` : '';
-      const res = await axios.get(`/api/students/export${params}`);
-      const rows = res.data;
-      if (!rows.length) { alert('No data to export.'); return; }
+      if (type === 'pdf') {
+        const rows = dataPayload;
+        const doc = new jsPDF('landscape');
+        
+        doc.setFontSize(18);
+        doc.text("Study Global - Student Pipeline Report", 14, 22);
+        
+        doc.setFontSize(11);
+        doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
+        doc.text(`Total Students Selected: ${rows.length}`, 14, 36);
 
-      const wb = XLSX.utils.book_new();
+        const tableColumn = ["Student ID", "Name", "Type", "Destination", "Program", "Stage", "Consultant"];
+        const tableRows = [];
 
-      // Sheet 1: Inquiries (main data)
-      const ws = XLSX.utils.json_to_sheet(rows);
-      // Column widths
-      ws['!cols'] = Object.keys(rows[0]).map(() => ({ wch: 22 }));
-      XLSX.utils.book_append_sheet(wb, ws, 'Inquiries');
+        rows.forEach(student => {
+          const studentData = [
+            student.student_id || '',
+            student.name || '',
+            student.type || '',
+            student.destination || '',
+            student.preferred_program || '',
+            student.current_stage || '',
+            student.counselor?.name || 'Unassigned'
+          ];
+          tableRows.push(studentData);
+        });
 
-      // Sheet 2: Data (dropdown reference)
-      const dataRows = [
-        { Source: 'Walk - in', Update: 'Interested', Outcome: 'Lead', 'Preferred Country': 'Australia', Level: 'UG - Direct', 'Visa Status': 'Received' },
-        { Source: 'Phone', Update: 'Need Time', Outcome: 'Drop', 'Preferred Country': 'Canada', Level: 'UG - Transfer', 'Visa Status': 'Pending' },
-        { Source: 'Email', Update: 'Not Interested', Outcome: '', 'Preferred Country': 'UK', Level: 'PG', 'Visa Status': 'Refused' },
-        { Source: 'Facebook', Update: 'Other', Outcome: '', 'Preferred Country': 'USA', Level: 'PG - Diploma', 'Visa Status': '' },
-        { Source: 'WhatsApp', Update: '', Outcome: '', 'Preferred Country': 'New Zealand', Level: '', 'Visa Status': '' },
-        { Source: 'Openday', Update: '', Outcome: '', 'Preferred Country': 'Other', Level: '', 'Visa Status': '' },
-        { Source: 'Expo', Update: '', Outcome: '', 'Preferred Country': '', Level: '', 'Visa Status': '' },
-        { Source: 'Other', Update: '', Outcome: '', 'Preferred Country': '', Level: '', 'Visa Status': '' },
-      ];
-      const wsData = XLSX.utils.json_to_sheet(dataRows);
-      XLSX.utils.book_append_sheet(wb, wsData, 'Data');
+        autoTable(doc, {
+          head: [tableColumn],
+          body: tableRows,
+          startY: 42,
+          styles: { fontSize: 9 },
+          headStyles: { fillColor: [30, 58, 138] }, // Tailwind blue-900
+        });
 
-      const date = new Date().toISOString().slice(0, 10);
-      XLSX.writeFile(wb, `SG_Inquiries_Export_${date}.xlsx`);
+        const date = new Date().toISOString().slice(0, 10);
+        
+        // Bounce download to force browser to respect filename
+        const pdfBase64 = doc.output('datauristring').split(',')[1];
+        
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/api/export/bounce';
+        
+        const i1 = document.createElement('input'); i1.type = 'hidden'; i1.name = 'content'; i1.value = pdfBase64; form.appendChild(i1);
+        const i2 = document.createElement('input'); i2.type = 'hidden'; i2.name = 'filename'; i2.value = `SG_Pipeline_Report_${date}.pdf`; form.appendChild(i2);
+        const i3 = document.createElement('input'); i3.type = 'hidden'; i3.name = 'mime_type'; i3.value = 'application/pdf'; form.appendChild(i3);
+        
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+      }
     } catch (err) {
       console.error('Export failed:', err);
       alert('Export failed. Please try again.');
@@ -871,8 +1039,6 @@ function AppContent({ user, onLogout }) {
           </div>
           <nav className="flex flex-col py-3 flex-1 overflow-y-auto">
             <NavItem to="/" icon={MdDashboard}>Dashboard</NavItem>
-            <NavItem to="/students" icon={MdPeople}>Students</NavItem>
-            <NavItem to="/pipeline" icon={MdTimeline}>Pipeline</NavItem>
             <NavItem to="/documents" icon={MdFolder}>Documents</NavItem>
             <NavItem to="/finance" icon={MdAttachMoney}>Finance</NavItem>
             <NavItem to="/reports" icon={MdBarChart}>Reports</NavItem>
@@ -905,7 +1071,13 @@ function AppContent({ user, onLogout }) {
             <div className="flex items-center gap-4">
               <button onClick={() => setIsAddModalOpen(true)} className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"><MdAdd size={18} /> Add New Student</button>
               <button onClick={() => setIsImportModalOpen(true)} className="border border-slate-300 hover:bg-slate-50 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"><MdUpload size={18} /> Import Excel</button>
-              <div className="flex items-center gap-3 pl-5 ml-2 border-l border-slate-200">
+              
+              {/* Reminders Menu */}
+              <div className="border-l border-slate-200 pl-4 ml-1 flex items-center">
+                <RemindersMenu refreshTrigger={refreshTrigger} />
+              </div>
+
+              <div className="flex items-center gap-3 pl-4 ml-1 border-l border-slate-200">
                 <div className="w-9 h-9 bg-blue-100 text-blue-800 flex items-center justify-center rounded-full font-bold uppercase">
                   {user?.name?.charAt(0) || 'U'}
                 </div>
@@ -919,7 +1091,7 @@ function AppContent({ user, onLogout }) {
 
           <Routes>
             <Route path="/" element={<Dashboard globalSearch={globalSearch} refreshTrigger={refreshTrigger} onExport={handleExport} />} />
-            <Route path="/pipeline" element={<Dashboard globalSearch={globalSearch} refreshTrigger={refreshTrigger} onExport={handleExport} />} />
+            <Route path="/documents" element={<Documents />} />
             <Route path="/student/:id" element={<StudentProfile />} />
             <Route path="/student/:id/edit" element={<StudentProfile editMode={true} />} />
             <Route path="*" element={<div className="p-6">Feature in development...</div>} />
