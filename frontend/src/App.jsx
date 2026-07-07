@@ -26,7 +26,7 @@ import Calendar from './Calendar';
 import ActivityLogs from './ActivityLogs';
 import Consultants from './Consultants';
 
-function Dashboard({ globalSearch, refreshTrigger, onExport }) {
+function Dashboard({ globalSearch, refreshTrigger, onExport, isDarkMode }) {
   const [viewMode, setViewMode] = useState(() => {
     return localStorage.getItem('crm_view_mode') || 'grid';
   });
@@ -232,27 +232,27 @@ function Dashboard({ globalSearch, refreshTrigger, onExport }) {
   const dropOutRate = totalLeads ? Math.round((students.filter(s => s.drop_out_flag).length / totalLeads) * 100) : 0;
 
   return (
-    <div className="flex-1 overflow-y-auto p-6 bg-slate-50 flex flex-col min-h-0">
-      <h2 className="text-lg font-semibold text-slate-800 mb-4 shrink-0">Key Performance Metrics</h2>
+    <div className="flex-1 overflow-y-auto p-6 bg-slate-50 dark:bg-zinc-950 flex flex-col min-h-0">
+      <h2 className="text-lg font-semibold text-slate-800 dark:text-zinc-100 mb-4 shrink-0">Key Performance Metrics</h2>
       <div className="grid grid-cols-5 gap-4 mb-8 shrink-0">
-        <div className="bg-sky-100 p-6 rounded-xl flex flex-col justify-between shadow-sm">
-          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">TOTAL LEADS</div>
-          <div className="text-4xl font-bold text-slate-800 flex items-baseline gap-2">{totalLeads}</div>
+        <div className="bg-sky-100 dark:bg-sky-950/20 border border-sky-200/50 dark:border-sky-900/50 p-6 rounded-xl flex flex-col justify-between shadow-sm">
+          <div className="text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider mb-2">TOTAL LEADS</div>
+          <div className="text-4xl font-bold text-slate-800 dark:text-zinc-100 flex items-baseline gap-2">{totalLeads}</div>
         </div>
-        <div className="bg-green-100 p-6 rounded-xl flex flex-col justify-between shadow-sm">
-          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">ACTIVE INQUIRIES</div>
-          <div className="text-4xl font-bold text-slate-800 flex items-baseline gap-2">{activeInquiries}</div>
+        <div className="bg-green-100 dark:bg-teal-950/20 border border-green-200/50 dark:border-teal-900/50 p-6 rounded-xl flex flex-col justify-between shadow-sm">
+          <div className="text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider mb-2">ACTIVE INQUIRIES</div>
+          <div className="text-4xl font-bold text-slate-800 dark:text-zinc-100 flex items-baseline gap-2">{activeInquiries}</div>
         </div>
-        <div className="bg-amber-100 p-6 rounded-xl flex flex-col justify-between shadow-sm">
-          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">VISA STAGES</div>
-          <div className="text-4xl font-bold text-slate-800 flex items-baseline gap-2">{visaApps} <span className="text-lg">⏳</span></div>
+        <div className="bg-amber-100 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-900/50 p-6 rounded-xl flex flex-col justify-between shadow-sm">
+          <div className="text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider mb-2">VISA STAGES</div>
+          <div className="text-4xl font-bold text-slate-800 dark:text-zinc-100 flex items-baseline gap-2">{visaApps} <span className="text-lg">⏳</span></div>
         </div>
-        <div className="bg-white border border-slate-200 p-6 rounded-xl flex items-center justify-center text-center shadow-sm text-sm">
-           <div><strong className="text-slate-800">Student Mix</strong><br/><span className="text-blue-600">{mixApiit}% APIIT</span><br/><span className="text-red-700">{mixExternal}% External</span></div>
+        <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-6 rounded-xl flex items-center justify-center text-center shadow-sm text-sm">
+           <div><strong className="text-slate-800 dark:text-zinc-100">Student Mix</strong><br/><span className="text-blue-600 dark:text-blue-400 font-semibold">{mixApiit}% APIIT</span><br/><span className="text-red-700 dark:text-red-400 font-semibold">{mixExternal}% External</span></div>
         </div>
-        <div className="bg-red-100 p-6 rounded-xl flex flex-col justify-between shadow-sm">
-          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">DROP OUT RATE</div>
-          <div className="text-4xl font-bold text-slate-800 flex items-baseline gap-2">{dropOutRate}%</div>
+        <div className="bg-red-100 dark:bg-red-950/20 border border-red-200/50 dark:border-red-900/50 p-6 rounded-xl flex flex-col justify-between shadow-sm">
+          <div className="text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider mb-2">DROP OUT RATE</div>
+          <div className="text-4xl font-bold text-slate-800 dark:text-zinc-100 flex items-baseline gap-2">{dropOutRate}%</div>
         </div>
       </div>
 
@@ -368,7 +368,7 @@ function Dashboard({ globalSearch, refreshTrigger, onExport }) {
 
       <div className="flex-1 min-h-[400px]">
         {viewMode === 'grid' ? (
-          <div className="ag-theme-alpine border border-slate-200 rounded-xl overflow-hidden shadow-sm h-full w-full">
+          <div className={`${isDarkMode ? 'ag-theme-alpine-dark' : 'ag-theme-alpine'} border border-slate-200 dark:border-zinc-800 rounded-xl overflow-hidden shadow-sm h-full w-full`}>
             {loading ? (
               <div className="flex items-center justify-center h-full text-slate-500">Loading student records...</div>
             ) : (
@@ -1130,7 +1130,7 @@ function AppContent({ user, onLogout }) {
           </header>
 
           <Routes>
-            <Route path="/" element={<Dashboard globalSearch={globalSearch} refreshTrigger={refreshTrigger} onExport={handleExport} />} />
+            <Route path="/" element={<Dashboard globalSearch={globalSearch} refreshTrigger={refreshTrigger} onExport={handleExport} isDarkMode={isDarkMode} />} />
             <Route path="/documents" element={<Documents />} />
             <Route path="/student/:id" element={<StudentProfile />} />
             <Route path="/student/:id/edit" element={<StudentProfile editMode={true} />} />
