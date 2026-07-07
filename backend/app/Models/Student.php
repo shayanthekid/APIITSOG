@@ -16,7 +16,8 @@ class Student extends Model
         'highest_qualification', 'institution', 'gpa', 'english_proficiency', 'english_score',
         'target_degree', 'target_countries', 'target_universities', 'source', 'campaign_name', 'import_date',
         'destination', 'current_stage', 'drop_out_flag', 'drop_out_reason', 'consultant_id', 'last_contact_date',
-        'is_whatsapp_enabled', 'follow_up_due_date', 'visa_status'
+        'is_whatsapp_enabled', 'follow_up_due_date', 'visa_status',
+        'expected_income_usd', 'expected_income_lkr'
     ];
 
     protected $casts = [
