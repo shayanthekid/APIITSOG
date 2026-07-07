@@ -51,24 +51,22 @@ export default function Reports() {
   ];
 
   const onCellValueChanged = async (params) => {
-    const updatedData = {
-      ...params.data,
-      expected_income_usd: params.data.expected_income_usd,
-      expected_income_lkr: params.data.expected_income_lkr
-    };
+    // Only send the specific changed field to avoid nested object issues
+    const payload = {};
+    payload[params.colDef.field] = parseFloat(params.newValue) || 0;
 
     try {
-      await axios.put(`/api/students/${params.data.id}`, updatedData);
+      await axios.put(`/api/students/${params.data.id}`, payload);
       
-      // Update local state to immediately update totals
+      // Update local state so totals recalculate immediately
       setStudents(prev => prev.map(s => 
         s.id === params.data.id 
-          ? { ...s, expected_income_usd: params.data.expected_income_usd, expected_income_lkr: params.data.expected_income_lkr } 
+          ? { ...s, [params.colDef.field]: payload[params.colDef.field] }
           : s
       ));
     } catch (err) {
       console.error("Failed to update student income details:", err);
-      alert("Failed to update financial values. Please verify details.");
+      alert("Failed to save value. Please try again.");
     }
   };
 
