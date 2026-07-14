@@ -22,7 +22,7 @@ const STATUSES = ['Lead','Prospective','Future Lead','Junk','Need Time','Call','
 const GENDERS  = ['Male','Female','Other'];
 const DOC_TYPES = ['Passport', 'Academic Records', 'Offer Letter', 'English Proficiency', 'Visa Documents', 'Student Declaration & Information Form'];
 
-const INP = "w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none bg-white";
+const INP = "w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-100 focus:border-orange-500 outline-none bg-white";
 const LBL = "block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wide";
 
 const STAGE_COLORS = {
@@ -330,7 +330,7 @@ export default function StudentProfile({ editMode: initialEditMode = false }) {
       {/* Header */}
       <div className="bg-white border-b border-slate-200 px-8 py-5 shrink-0">
         <div className="flex items-center gap-2 text-sm text-slate-500 mb-4">
-          <button onClick={() => navigate(-1)} className="hover:text-blue-600 flex items-center gap-1 transition-colors">
+          <button onClick={() => navigate(-1)} className="hover:text-orange-500 flex items-center gap-1 transition-colors">
             <MdArrowBack /> Back
           </button>
           <span>/</span>
@@ -339,7 +339,7 @@ export default function StudentProfile({ editMode: initialEditMode = false }) {
 
         <div className="flex justify-between items-start flex-wrap gap-4">
           <div className="flex gap-5 items-center">
-            <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-blue-800 text-white rounded-2xl flex items-center justify-center text-3xl font-bold shadow-md shrink-0">
+            <div className="w-20 h-20 bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-2xl flex items-center justify-center text-3xl font-bold shadow-md shrink-0">
               {student.name.charAt(0)}
             </div>
             <div>
@@ -348,7 +348,7 @@ export default function StudentProfile({ editMode: initialEditMode = false }) {
                   <input
                     value={form.name}
                     onChange={e => handleFieldChange('name', e.target.value)}
-                    className="text-2xl font-bold text-slate-800 border-b-2 border-blue-400 bg-transparent outline-none px-1 min-w-[200px]"
+                    className="text-2xl font-bold text-slate-800 border-b-2 border-orange-400 bg-transparent outline-none px-1 min-w-[200px]"
                   />
                 ) : (
                   <h1 className="text-2xl font-bold text-slate-800">{student.name}</h1>
@@ -365,7 +365,7 @@ export default function StudentProfile({ editMode: initialEditMode = false }) {
                   <select
                     value={form.current_stage}
                     onChange={e => handleFieldChange('current_stage', e.target.value)}
-                    className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-blue-500 bg-white"
+                    className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-orange-500 bg-white"
                   >
                     {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
@@ -388,7 +388,7 @@ export default function StudentProfile({ editMode: initialEditMode = false }) {
                 <button onClick={handleCancel} className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-700 text-sm font-medium hover:bg-slate-50 flex items-center gap-2 shadow-sm">
                   <MdClose size={16} /> Cancel
                 </button>
-                <button onClick={handleSave} disabled={saving} className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold flex items-center gap-2 shadow-sm disabled:opacity-60">
+                <button onClick={handleSave} disabled={saving} className="px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-semibold flex items-center gap-2 shadow-sm disabled:opacity-60">
                   <MdSave size={16} /> {saving ? 'Saving...' : 'Save Changes'}
                 </button>
               </>
@@ -457,7 +457,7 @@ export default function StudentProfile({ editMode: initialEditMode = false }) {
                   value={newNote}
                   onChange={(e) => setNewNote(e.target.value)}
                   placeholder="Type a new note here..."
-                  className="flex-1 border border-slate-300 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 border border-slate-300 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
                   rows={2}
                 />
                 <button
@@ -471,7 +471,7 @@ export default function StudentProfile({ editMode: initialEditMode = false }) {
                       console.error("Failed to add note", e);
                     }
                   }}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors h-fit self-end"
+                  className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors h-fit self-end"
                 >
                   Add Note
                 </button>
@@ -551,7 +551,7 @@ export default function StudentProfile({ editMode: initialEditMode = false }) {
                   <span>{uploadProgress}%</span>
                 </div>
                 <div className="bg-slate-200 rounded-full h-1.5 overflow-hidden">
-                  <div className="bg-blue-600 h-1.5 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
+                  <div className="bg-orange-500 h-1.5 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
                 </div>
               </div>
             )}
@@ -569,11 +569,11 @@ export default function StudentProfile({ editMode: initialEditMode = false }) {
                       </div>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded bg-blue-100 text-blue-600 flex items-center justify-center text-[10px] font-bold">
+                          <div className="w-8 h-8 rounded bg-orange-100 text-orange-700 flex items-center justify-center text-[10px] font-bold">
                             {doc.file_name.split('.').pop().toUpperCase()}
                           </div>
                           <div className="overflow-hidden">
-                            <div className="text-sm text-slate-700 truncate cursor-pointer hover:text-blue-600 hover:underline" onClick={() => handleDownload(doc)}>
+                            <div className="text-sm text-slate-700 truncate cursor-pointer hover:text-orange-600 hover:underline" onClick={() => handleDownload(doc)}>
                               {doc.file_name} <span className="text-[10px] text-slate-400 font-bold ml-1">v{doc.version}</span>
                             </div>
                             {doc.rejection_reason && doc.status === 'Rejected' && (
@@ -584,12 +584,12 @@ export default function StudentProfile({ editMode: initialEditMode = false }) {
                         <div className="flex items-center gap-2">
                           <button 
                             onClick={() => { setActiveDocType(type); fileInputRef.current.click(); }}
-                            className="text-slate-400 hover:text-blue-600 bg-slate-50 hover:bg-blue-50 p-1.5 rounded" title="Upload new version"
+                            className="text-slate-400 hover:text-orange-600 bg-slate-50 hover:bg-orange-50 p-1.5 rounded" title="Upload new version"
                           >
                             <MdUpload size={18} />
                           </button>
                           {!editMode && doc.status === 'Uploaded' && (
-                             <button onClick={() => setReviewDoc(doc)} className="text-[10px] bg-blue-50 text-blue-700 px-2 py-1.5 rounded hover:bg-blue-100 font-bold tracking-wide uppercase">Review</button>
+                             <button onClick={() => setReviewDoc(doc)} className="text-[10px] bg-orange-50 text-orange-700 px-2 py-1.5 rounded hover:bg-orange-100 font-bold tracking-wide uppercase">Review</button>
                           )}
                         </div>
                       </div>
@@ -603,7 +603,7 @@ export default function StudentProfile({ editMode: initialEditMode = false }) {
                         <span className="text-[10px] font-bold text-slate-400 px-2 py-0.5 rounded-full bg-slate-200">Not Uploaded</span>
                         <button 
                           onClick={() => { setActiveDocType(type); fileInputRef.current.click(); }}
-                          className="text-xs flex items-center gap-1 bg-blue-50 text-blue-600 hover:bg-blue-100 px-2 py-1 rounded font-semibold shadow-sm"
+                          className="text-xs flex items-center gap-1 bg-orange-50 text-orange-600 hover:bg-orange-100 px-2 py-1 rounded font-semibold shadow-sm"
                         >
                           <MdUpload size={14} /> Upload
                         </button>
@@ -628,7 +628,7 @@ export default function StudentProfile({ editMode: initialEditMode = false }) {
               <div className="text-xs text-slate-400 mt-1">Version {reviewDoc.version}</div>
             </div>
             <div className="flex flex-col gap-3 mb-6">
-              <button onClick={() => handleDownload(reviewDoc)} className="text-sm text-blue-600 hover:underline text-left font-medium flex items-center gap-2">
+              <button onClick={() => handleDownload(reviewDoc)} className="text-sm text-orange-600 hover:underline text-left font-medium flex items-center gap-2">
                 <MdDownload /> Download / View File
               </button>
             </div>
@@ -655,7 +655,7 @@ export default function StudentProfile({ editMode: initialEditMode = false }) {
       {graphOpen && (
         <div className="fixed inset-0 z-[100] bg-slate-900/90 flex items-center justify-center p-4 sm:p-10 backdrop-blur-sm">
           <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full h-full max-w-6xl shadow-2xl flex flex-col overflow-hidden relative animate-in fade-in zoom-in-95 duration-300">
-            <button onClick={() => setGraphOpen(false)} className="absolute top-6 right-6 z-20 w-10 h-10 bg-blue-600 hover:bg-blue-500 text-white rounded-full flex items-center justify-center transition-colors shadow-lg shadow-blue-900/40 border border-blue-400/30">
+            <button onClick={() => setGraphOpen(false)} className="absolute top-6 right-6 z-20 w-10 h-10 bg-orange-500 hover:bg-orange-600 text-white rounded-full flex items-center justify-center transition-colors shadow-lg shadow-orange-950/40 border border-orange-400/30">
               <MdClose size={24} />
             </button>
             <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/50 backdrop-blur-md relative z-10">
@@ -667,7 +667,7 @@ export default function StudentProfile({ editMode: initialEditMode = false }) {
               </button>
               <div className="text-center flex-1">
                 <h2 className="text-2xl font-bold text-white flex items-center justify-center gap-3">
-                  <MdHub className="text-blue-500" size={28} /> Obsidian-Style Document Graph
+                  <MdHub className="text-orange-500" size={28} /> Obsidian-Style Document Graph
                 </h2>
                 <p className="text-slate-400 text-sm mt-1">Interactive visualization of student files</p>
               </div>

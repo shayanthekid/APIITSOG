@@ -34,15 +34,15 @@ export default function Login({ onLogin }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-950 via-blue-900 to-blue-800 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-800 flex items-center justify-center p-4">
       <div className="max-w-md w-full">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-white text-blue-900 rounded-2xl flex items-center justify-center text-sm font-extrabold mx-auto mb-4 shadow-2xl">
+          <div className="w-20 h-20 bg-white text-orange-600 rounded-2xl flex items-center justify-center text-sm font-extrabold mx-auto mb-4 shadow-2xl">
             APIIT
           </div>
           <h1 className="text-3xl font-bold text-white">Study Global CRM</h1>
-          <p className="text-blue-300 mt-2 text-sm">Sign in to access your workspace</p>
+          <p className="text-slate-400 mt-2 text-sm">Sign in to access your workspace</p>
         </div>
 
         {/* Card */}
@@ -66,7 +66,7 @@ export default function Login({ onLogin }) {
                     autoComplete="email"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
+                    className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all text-sm"
                     placeholder="admin@example.com"
                   />
                 </div>
@@ -83,7 +83,7 @@ export default function Login({ onLogin }) {
                     autoComplete="current-password"
                     value={password}
                     onChange={e => setPassword(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
+                    className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all text-sm"
                     placeholder="••••••••"
                   />
                 </div>
@@ -93,7 +93,7 @@ export default function Login({ onLogin }) {
                 id="login-btn"
                 type="submit"
                 disabled={loading}
-                className="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 mt-2 disabled:opacity-70 shadow-lg"
+                className="w-full bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 mt-2 disabled:opacity-70 shadow-lg"
               >
                 {loading ? (
                   <span className="animate-pulse">Signing in...</span>

@@ -91,7 +91,7 @@ export default function ActivityLogs({ user }) {
                     <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${
                       log.action === 'update_student'
                         ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/20 dark:text-amber-400'
-                        : 'bg-blue-100 text-blue-800 dark:bg-blue-950/20 dark:text-blue-400'
+                        : 'bg-orange-100 text-orange-800 dark:bg-orange-950/20 dark:text-orange-400'
                     }`}>
                       {log.action}
                     </span>

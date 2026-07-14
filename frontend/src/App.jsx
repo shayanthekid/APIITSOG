@@ -11,11 +11,12 @@ import {
   MdHistory
 } from 'react-icons/md';
 import { AgGridReact } from 'ag-grid-react';
-import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
+import { ModuleRegistry, AllCommunityModule, provideGlobalGridOptions } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
+provideGlobalGridOptions({ theme: 'legacy' });
 import KanbanBoard from './KanbanBoard';
 import Login from './Login';
 import StudentProfile from './StudentProfile';
@@ -26,7 +27,7 @@ import Calendar from './Calendar';
 import ActivityLogs from './ActivityLogs';
 import Consultants from './Consultants';
 
-function Dashboard({ globalSearch, refreshTrigger, onExport, isDarkMode }) {
+function Dashboard({ globalSearch, refreshTrigger, onExport, isDarkMode, user, onAddNewLead }) {
   const [viewMode, setViewMode] = useState(() => {
     return localStorage.getItem('crm_view_mode') || 'grid';
   });
@@ -103,24 +104,44 @@ function Dashboard({ globalSearch, refreshTrigger, onExport, isDarkMode }) {
     // Determine the field to update. If it's a nested object like consultant.name, we shouldn't edit it directly via this simple endpoint without mapping to consultant_id.
     // For now, we allow updating the basic top-level fields.
     const field = params.colDef.field;
-    if (field === 'consultant.name' || field === 'target_universities') {
-       // Ignore complex relation updates for simple inline editing
+    if (field === 'consultant.name') {
        return; 
     }
     
-    const updatedData = { [field]: params.newValue };
+    let updatedData = { [field]: params.newValue };
     
+    // Support Preferred Universities array field
+    if (field === 'target_universities') {
+        updatedData[field] = params.newValue ? params.newValue.split(',').map(s => s.trim()) : [];
+    }
+
     // For the status column, translate back to boolean
     if (field === 'drop_out_flag') {
         updatedData[field] = params.newValue === 'Dropped Out';
     }
 
+    if (params.api) {
+      params.api.showLoadingOverlay();
+    }
+
     try {
       await axios.put(`/api/students/${params.data.id}`, updatedData);
+      
+      // Update local state immediately to prevent values from reverting on parent re-renders
+      setStudents(prev => prev.map(s => 
+        s.id === params.data.id 
+          ? { ...s, [field]: updatedData[field] }
+          : s
+      ));
     } catch (e) {
       console.error('Failed to update student:', e);
-      // Optional: Revert the cell value visually on failure
+      // Revert the cell value visually on failure
       params.node.setDataValue(field, params.oldValue);
+      alert('Failed to save changes. Reverted value.');
+    } finally {
+      if (params.api) {
+        params.api.hideOverlay();
+      }
     }
   }, []);
 
@@ -131,7 +152,7 @@ function Dashboard({ globalSearch, refreshTrigger, onExport, isDarkMode }) {
       headerName: 'Student Name', 
       minWidth: 170,
       cellRenderer: (params) => (
-        <Link to={`/student/${params.data.id}`} className="text-blue-600 hover:text-blue-800 font-semibold hover:underline">
+        <Link to={`/student/${params.data.id}`} className="text-orange-500 hover:text-orange-700 font-semibold hover:underline">
           {params.value}
         </Link>
       )
@@ -212,8 +233,8 @@ function Dashboard({ globalSearch, refreshTrigger, onExport, isDarkMode }) {
       sortable: false,
       editable: false,
       cellRenderer: (params) => (
-        <div className="flex gap-2 text-blue-600 cursor-pointer pt-2">
-          <Link to={`/student/${params.data.id}`} title="View Profile"><MdVisibility size={18} className="hover:text-blue-800" /></Link>
+        <div className="flex gap-2 text-orange-500 cursor-pointer pt-2">
+          <Link to={`/student/${params.data.id}`} title="View Profile"><MdVisibility size={18} className="hover:text-orange-700" /></Link>
           <Link to={`/student/${params.data.id}/edit`} title="Edit Student"><MdEdit size={18} className="hover:text-amber-600" /></Link>
           <MdEmail size={18} className="hover:text-green-600" title="Send Email" />
         </div>
@@ -248,7 +269,7 @@ function Dashboard({ globalSearch, refreshTrigger, onExport, isDarkMode }) {
           <div className="text-4xl font-bold text-slate-800 dark:text-zinc-100 flex items-baseline gap-2">{visaApps} <span className="text-lg">⏳</span></div>
         </div>
         <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-6 rounded-xl flex items-center justify-center text-center shadow-sm text-sm">
-           <div><strong className="text-slate-800 dark:text-zinc-100">Student Mix</strong><br/><span className="text-blue-600 dark:text-blue-400 font-semibold">{mixApiit}% APIIT</span><br/><span className="text-red-700 dark:text-red-400 font-semibold">{mixExternal}% External</span></div>
+           <div><strong className="text-slate-800 dark:text-zinc-100">Student Mix</strong><br/><span className="text-orange-500 dark:text-orange-400 font-semibold">{mixApiit}% APIIT</span><br/><span className="text-red-700 dark:text-red-400 font-semibold">{mixExternal}% External</span></div>
         </div>
         <div className="bg-red-100 dark:bg-red-950/20 border border-red-200/50 dark:border-red-900/50 p-6 rounded-xl flex flex-col justify-between shadow-sm">
           <div className="text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider mb-2">DROP OUT RATE</div>
@@ -262,13 +283,13 @@ function Dashboard({ globalSearch, refreshTrigger, onExport, isDarkMode }) {
             <div className="flex bg-slate-200 p-1 rounded-lg">
               <button 
                 onClick={() => handleViewChange('grid')}
-                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-blue-700' : 'text-slate-600 hover:text-slate-800'}`}
+                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-orange-600 font-semibold' : 'text-slate-600 hover:text-slate-800'}`}
               >
                 Data Grid
               </button>
               <button 
                 onClick={() => handleViewChange('kanban')}
-                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${viewMode === 'kanban' ? 'bg-white shadow-sm text-blue-700' : 'text-slate-600 hover:text-slate-800'}`}
+                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${viewMode === 'kanban' ? 'bg-white shadow-sm text-orange-600 font-semibold' : 'text-slate-600 hover:text-slate-800'}`}
               >
                 Kanban Board
               </button>
@@ -343,7 +364,7 @@ function Dashboard({ globalSearch, refreshTrigger, onExport, isDarkMode }) {
           <option value="Consultant Head User">Consultant Head User</option>
         </select>
         <label className="flex items-center gap-2 text-sm bg-white border border-slate-300 px-3 py-2 rounded-md cursor-pointer">
-          <input type="checkbox" checked={myStudentsOnly} onChange={e => setMyStudentsOnly(e.target.checked)} className="rounded text-blue-600 focus:ring-blue-500" /> My Students
+          <input type="checkbox" checked={myStudentsOnly} onChange={e => setMyStudentsOnly(e.target.checked)} className="rounded text-orange-500 focus:ring-orange-500" /> My Students
         </label>
         <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="border border-slate-300 rounded-md px-3 py-2 text-sm bg-white">
           <option value="">All Types</option>
@@ -388,7 +409,19 @@ function Dashboard({ globalSearch, refreshTrigger, onExport, isDarkMode }) {
           </div>
         ) : (
           <div className="h-full w-full rounded-xl overflow-x-auto">
-            <KanbanBoard />
+            <KanbanBoard 
+              students={students}
+              setStudents={setStudents}
+              globalSearch={globalSearch}
+              countryFilter={countryFilter}
+              consultantFilter={consultantFilter}
+              typeFilter={typeFilter}
+              stageFilter={stageFilter}
+              statusFilter={statusFilter}
+              myStudentsOnly={myStudentsOnly}
+              user={user}
+              onAddNewLead={onAddNewLead}
+            />
           </div>
         )}
       </div>
@@ -432,7 +465,7 @@ function AddStudentModal({ isOpen, onClose, onAdd }) {
   if (!isOpen) return null;
 
   const set = (k, v) => setFormData(f => ({ ...f, [k]: v }));
-  const inp = "w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none bg-white";
+  const inp = "w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-100 focus:border-orange-500 outline-none bg-white";
   const lbl = "block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wide";
 
   const handleSubmit = async (e) => {
@@ -487,33 +520,33 @@ function AddStudentModal({ isOpen, onClose, onAdd }) {
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden max-h-[92vh] flex flex-col">
         {/* Header */}
-        <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-blue-900 to-blue-700 shrink-0">
+        <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-orange-600 to-orange-500 shrink-0">
           <div>
             <h2 className="text-lg font-bold text-white">Add New Student</h2>
-            <p className="text-xs text-blue-200 mt-0.5">Select entry mode below</p>
+            <p className="text-xs text-orange-100 mt-0.5">Select entry mode below</p>
           </div>
-          <button onClick={onClose} className="text-blue-200 hover:text-white"><MdClose size={24} /></button>
+          <button onClick={onClose} className="text-orange-100 hover:text-white"><MdClose size={24} /></button>
         </div>
 
         {/* Mode Toggle */}
         <div className="flex border-b border-slate-100 bg-slate-50 shrink-0">
           <button
             onClick={() => setMode('fast')}
-            className={`flex-1 py-3 text-sm font-semibold transition-all ${mode === 'fast' ? 'text-blue-700 border-b-2 border-blue-600 bg-white' : 'text-slate-500 hover:text-slate-700'}`}
+            className={`flex-1 py-3 text-sm font-semibold transition-all ${mode === 'fast' ? 'text-orange-600 border-b-2 border-orange-500 bg-white' : 'text-slate-500 hover:text-slate-700'}`}
           >
             ⚡ Fast Add
           </button>
           <button
             onClick={() => setMode('advanced')}
-            className={`flex-1 py-3 text-sm font-semibold transition-all ${mode === 'advanced' ? 'text-blue-700 border-b-2 border-blue-600 bg-white' : 'text-slate-500 hover:text-slate-700'}`}
+            className={`flex-1 py-3 text-sm font-semibold transition-all ${mode === 'advanced' ? 'text-orange-600 border-b-2 border-orange-500 bg-white' : 'text-slate-500 hover:text-slate-700'}`}
           >
             📋 Advanced Add
           </button>
         </div>
 
         {mode === 'fast' && (
-          <div className="px-5 pt-3 pb-1 bg-blue-50 border-b border-blue-100 shrink-0">
-            <p className="text-xs text-blue-700">⚡ <strong>Fast Add</strong> — capture essential details now. All other information can be completed from the student profile later.</p>
+          <div className="px-5 pt-3 pb-1 bg-orange-50 border-b border-orange-100 shrink-0">
+            <p className="text-xs text-orange-700">⚡ <strong>Fast Add</strong> — capture essential details now. All other information can be completed from the student profile later.</p>
           </div>
         )}
 
@@ -659,7 +692,7 @@ function AddStudentModal({ isOpen, onClose, onAdd }) {
                 <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">📎 Documents (Max 7MB per file)</p>
                 <div
                   onClick={() => document.getElementById('doc-upload-input').click()}
-                  className="border-2 border-dashed border-slate-300 rounded-xl p-5 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all"
+                  className="border-2 border-dashed border-slate-300 rounded-xl p-5 text-center cursor-pointer hover:border-orange-400 hover:bg-orange-50 transition-all"
                 >
                   <p className="text-sm font-medium text-slate-600">
                     {docFiles.length > 0 ? `📁 ${docFiles.length} files selected` : 'Click to attach documents'}
@@ -688,7 +721,7 @@ function AddStudentModal({ isOpen, onClose, onAdd }) {
                   <div className="mt-2 space-y-1">
                     {docFiles.map((f, i) => (
                       <div key={i} className="text-[10px] text-slate-500 flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span> {f.name} ({(f.size/1024/1024).toFixed(2)} MB)
+                        <span className="w-1.5 h-1.5 rounded-full bg-orange-400"></span> {f.name} ({(f.size/1024/1024).toFixed(2)} MB)
                       </div>
                     ))}
                   </div>
@@ -705,7 +738,7 @@ function AddStudentModal({ isOpen, onClose, onAdd }) {
 
           <div className="pt-2 flex justify-end gap-3 border-t border-slate-100">
             <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
-            <button type="submit" disabled={loading} className="px-6 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50 flex items-center gap-2">
+            <button type="submit" disabled={loading} className="px-6 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg disabled:opacity-50 flex items-center gap-2">
               {loading ? 'Saving...' : (mode === 'fast' ? '⚡ Add Student' : '📋 Save Full Profile')}
             </button>
           </div>
@@ -788,9 +821,9 @@ function ImportModal({ isOpen, onClose, onImported }) {
           {/* Drop zone */}
           <div
             onClick={() => fileInputRef.current?.click()}
-            className="border-2 border-dashed border-blue-300 rounded-xl p-8 text-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all"
+            className="border-2 border-dashed border-orange-300 rounded-xl p-8 text-center cursor-pointer hover:border-orange-500 hover:bg-orange-50 transition-all"
           >
-            <MdTableChart size={40} className="mx-auto text-blue-400 mb-3" />
+            <MdTableChart size={40} className="mx-auto text-orange-400 mb-3" />
             {fileName ? (
               <div>
                 <p className="font-semibold text-slate-800">{fileName}</p>
@@ -858,7 +891,7 @@ function ImportModal({ isOpen, onClose, onImported }) {
             <button
               onClick={handleImport}
               disabled={!parsedRows.length || loading}
-              className="px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50 flex items-center gap-2"
+              className="px-5 py-2 text-sm font-medium text-white bg-orange-500 hover:bg-orange-600 rounded-lg disabled:opacity-50 flex items-center gap-2"
             >
               {loading ? 'Importing...' : `Import ${parsedRows.length} Record${parsedRows.length !== 1 ? 's' : ''}`}
             </button>
@@ -893,7 +926,7 @@ function RemindersMenu({ refreshTrigger }) {
     <div className="relative">
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors focus:outline-none"
+        className="relative p-2 text-slate-500 hover:text-orange-600 hover:bg-orange-50 rounded-full transition-colors focus:outline-none"
         title="Pending Tasks"
       >
         <MdNotifications size={24} />
@@ -910,9 +943,9 @@ function RemindersMenu({ refreshTrigger }) {
           <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden z-50 animate-in fade-in zoom-in duration-200">
             <div className="px-4 py-3 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
               <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
-                <MdNotificationsActive className="text-blue-600" /> Pending Tasks
+                <MdNotificationsActive className="text-orange-500" /> Pending Tasks
               </h3>
-              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-semibold">{reminders.length}</span>
+              <span className="text-xs bg-orange-100 text-orange-800 px-2 py-0.5 rounded-full font-semibold">{reminders.length}</span>
             </div>
             <div className="max-h-[60vh] overflow-y-auto">
               {loading ? (
@@ -1035,7 +1068,7 @@ function AppContent({ user, onLogout }) {
           body: tableRows,
           startY: 42,
           styles: { fontSize: 9 },
-          headStyles: { fillColor: [30, 58, 138] }, // Tailwind blue-900
+          headStyles: { fillColor: [234, 88, 12] }, // Tailwind orange-600
         });
 
         const date = new Date().toISOString().slice(0, 10);
@@ -1086,7 +1119,7 @@ function AppContent({ user, onLogout }) {
           <div className="p-4 border-t border-white/10 mt-auto">
             <button 
               onClick={handleLogoutClick}
-              className="flex items-center gap-2 text-sm text-blue-200 hover:text-white transition-colors w-full p-2 rounded hover:bg-white/10"
+              className="flex items-center gap-2 text-sm text-orange-200 hover:text-white transition-colors w-full p-2 rounded hover:bg-white/10"
             >
               <MdLogout size={18} /> Sign Out
             </button>
@@ -1100,7 +1133,7 @@ function AppContent({ user, onLogout }) {
               <input 
                 type="text" 
                 placeholder="Global Search (Name, ID, Passport, Phone)..." 
-                className="w-full bg-slate-100 border border-slate-200 rounded-lg py-2 pl-10 pr-4 outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-sm" 
+                className="w-full bg-slate-100 border border-slate-200 rounded-lg py-2 pl-10 pr-4 outline-none focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all text-sm" 
                 value={globalSearch}
                 onChange={e => setGlobalSearch(e.target.value)}
               />
@@ -1118,7 +1151,7 @@ function AppContent({ user, onLogout }) {
               </div>
 
               <div className="flex items-center gap-3 pl-4 ml-1 border-l border-slate-200">
-                <div className="w-9 h-9 bg-blue-100 text-blue-800 flex items-center justify-center rounded-full font-bold uppercase">
+                <div className="w-9 h-9 bg-orange-100 text-orange-850 flex items-center justify-center rounded-full font-bold uppercase">
                   {user?.name?.charAt(0) || 'U'}
                 </div>
                 <div className="leading-tight">
@@ -1130,7 +1163,7 @@ function AppContent({ user, onLogout }) {
           </header>
 
           <Routes>
-            <Route path="/" element={<Dashboard globalSearch={globalSearch} refreshTrigger={refreshTrigger} onExport={handleExport} isDarkMode={isDarkMode} />} />
+            <Route path="/" element={<Dashboard globalSearch={globalSearch} refreshTrigger={refreshTrigger} onExport={handleExport} isDarkMode={isDarkMode} user={user} onAddNewLead={() => setIsAddModalOpen(true)} />} />
             <Route path="/documents" element={<Documents />} />
             <Route path="/student/:id" element={<StudentProfile />} />
             <Route path="/student/:id/edit" element={<StudentProfile editMode={true} />} />

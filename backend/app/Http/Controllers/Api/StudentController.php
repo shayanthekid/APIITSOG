@@ -108,6 +108,17 @@ class StudentController extends Controller
             }
         }
 
+        $student->load('consultant');
+        $consultantName = $student->consultant ? $student->consultant->name : 'Unassigned';
+        
+        ActivityLog::create([
+            'user_id' => auth()->id() ?: 1,
+            'action' => 'create_student',
+            'description' => "Created student record for '{$student->name}' ({$student->student_id}), assigned to: {$consultantName}",
+            'target_type' => 'student',
+            'target_id' => $student->id
+        ]);
+
         return $student->load(['consultant', 'documents']);
     }
 
@@ -201,6 +212,14 @@ class StudentController extends Controller
                     'version'    => $newVersion,
                 ]);
                 $uploaded[] = $doc;
+
+                ActivityLog::create([
+                    'user_id' => auth()->id() ?: 1,
+                    'action' => 'upload_document',
+                    'description' => "Uploaded document '{$doc->file_name}' (Type: {$doc->type}, Version: {$doc->version}) for student '{$student->name}'",
+                    'target_type' => 'student',
+                    'target_id' => $student->id
+                ]);
             }
         }
 
@@ -210,6 +229,7 @@ class StudentController extends Controller
     public function updateDocumentStatus(Request $request, $id, $documentId)
     {
         $document = Document::where('student_id', $id)->findOrFail($documentId);
+        $student = Student::findOrFail($id);
 
         $request->validate([
             'status'           => 'required|string|in:Uploaded,Verified,Rejected',
@@ -221,12 +241,27 @@ class StudentController extends Controller
             'rejection_reason' => $request->status === 'Rejected' ? $request->rejection_reason : null,
         ]);
 
+        $desc = "Updated document '{$document->file_name}' ({$document->type}) status to '{$request->status}' for student '{$student->name}'";
+        if ($request->status === 'Rejected') {
+            $desc .= " (Reason: {$request->rejection_reason})";
+        }
+
+        ActivityLog::create([
+            'user_id' => auth()->id() ?: 1,
+            'action' => 'update_document_status',
+            'description' => $desc,
+            'target_type' => 'student',
+            'target_id' => $student->id
+        ]);
+
         return response()->json($document);
     }
 
     public function destroy($id)
     {
         $student = Student::findOrFail($id);
+        $studentName = $student->name;
+        $studentIdStr = $student->student_id;
         
         // Delete document files from storage
         foreach ($student->documents as $doc) {
@@ -234,6 +269,15 @@ class StudentController extends Controller
         }
         
         $student->delete();
+
+        ActivityLog::create([
+            'user_id' => auth()->id() ?: 1,
+            'action' => 'delete_student',
+            'description' => "Deleted student record: '{$studentName}' ({$studentIdStr})",
+            'target_type' => 'student',
+            'target_id' => $id
+        ]);
+
         return response()->noContent();
     }
 
@@ -257,6 +301,14 @@ class StudentController extends Controller
             'note_content' => $request->note_content,
         ]);
 
+        ActivityLog::create([
+            'user_id' => auth()->id() ?: 1,
+            'action' => 'add_note',
+            'description' => "Added a note on student '{$student->name}': '" . Str::limit($note->note_content, 50) . "'",
+            'target_type' => 'student',
+            'target_id' => $student->id
+        ]);
+
         return response()->json($note->load('author'), 201);
     }
 
@@ -264,6 +316,15 @@ class StudentController extends Controller
     {
         $student = Student::findOrFail($id);
         $student->update(['follow_up_due_date' => null]);
+
+        ActivityLog::create([
+            'user_id' => auth()->id() ?: 1,
+            'action' => 'clear_reminder',
+            'description' => "Cleared follow-up reminder for student '{$student->name}'",
+            'target_type' => 'student',
+            'target_id' => $student->id
+        ]);
+
         return response()->json(['message' => 'Reminder cleared successfully']);
     }
 }

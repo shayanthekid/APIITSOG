@@ -262,7 +262,7 @@ export default function Documents() {
       <div className="bg-white px-6 py-4 border-b border-slate-200 flex items-center justify-between shrink-0 shadow-sm z-10">
         <div className="flex items-center gap-4">
           <div className="text-xl font-bold text-slate-800 flex items-center gap-2">
-            <MdCloud className="text-blue-600" /> WorkDrive
+            <MdCloud className="text-orange-500" /> WorkDrive
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -273,17 +273,17 @@ export default function Documents() {
               placeholder="Search documents..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 py-2 bg-slate-100 border-transparent rounded-lg text-sm focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none w-64 transition-all"
+              className="pl-10 pr-4 py-2 bg-slate-100 border-transparent rounded-lg text-sm focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-100 outline-none w-64 transition-all"
             />
           </div>
-          <button onClick={fetchLogs} className="p-2 text-slate-500 hover:text-blue-600 transition-colors" title="View History">
+          <button onClick={fetchLogs} className="p-2 text-slate-500 hover:text-orange-600 transition-colors" title="View History">
             <MdHistory size={24} />
           </button>
           <button onClick={handleCreateFolder} className="flex items-center gap-2 bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
-            <MdCreateNewFolder size={18} className="text-blue-600" /> New Folder
+            <MdCreateNewFolder size={18} className="text-orange-500" /> New Folder
           </button>
           <div className="flex flex-col items-center">
-              <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm">
+              <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors shadow-sm">
                 <MdFileUpload size={18} /> Upload
               </button>
               <span className="text-[10px] text-slate-400 mt-1 font-normal">PDF, Word, Images (Max 20MB)</span>
@@ -298,16 +298,16 @@ export default function Documents() {
           <div className="px-3 space-y-1">
             <button 
               onClick={() => { setCurrentFolderId(null); setBreadcrumbs([{ id: null, name: 'WorkDrive' }]); }}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${currentFolderId === null ? 'bg-blue-100 text-blue-700' : 'text-slate-600 hover:bg-slate-200/50 hover:text-slate-800'}`}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${currentFolderId === null ? 'bg-orange-100 text-orange-700' : 'text-slate-600 hover:bg-slate-200/50 hover:text-slate-800'}`}
             >
-              <MdFolder size={20} className={currentFolderId === null ? 'text-blue-600' : 'text-slate-400'} />
+              <MdFolder size={20} className={currentFolderId === null ? 'text-orange-500' : 'text-slate-400'} />
               Team Folders
             </button>
             <button 
                 onClick={() => { setCurrentFolderId('students_root'); setBreadcrumbs([{ id: null, name: 'WorkDrive' }, { id: 'students_root', name: 'Student Files' }]); }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${currentFolderId === 'students_root' ? 'bg-blue-100 text-blue-700' : 'text-slate-600 hover:bg-slate-200/50 hover:text-slate-800'}`}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${currentFolderId === 'students_root' ? 'bg-orange-100 text-orange-700' : 'text-slate-600 hover:bg-slate-200/50 hover:text-slate-800'}`}
             >
-              <MdPeople size={20} className={currentFolderId === 'students_root' ? 'text-blue-600' : 'text-slate-400'} />
+              <MdPeople size={20} className={currentFolderId === 'students_root' ? 'text-orange-500' : 'text-slate-400'} />
               Student Files
             </button>
           </div>
@@ -315,7 +315,7 @@ export default function Documents() {
 
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col bg-white overflow-hidden relative">
-          {loading && <div className="absolute inset-0 bg-white/50 z-20 flex items-center justify-center font-medium text-blue-600">Loading...</div>}
+          {loading && <div className="absolute inset-0 bg-white/50 z-20 flex items-center justify-center font-medium text-orange-500">Loading...</div>}
           
           {/* Error Banner */}
           {error && (
@@ -340,7 +340,7 @@ export default function Documents() {
                 {index > 0 && <span className="text-slate-400">/</span>}
                 <button 
                   onClick={() => handleBreadcrumbClick(b, index)}
-                  className={`text-sm font-medium hover:underline ${index === breadcrumbs.length - 1 ? 'text-slate-800' : 'text-blue-600'}`}
+                  className={`text-sm font-medium hover:underline ${index === breadcrumbs.length - 1 ? 'text-slate-800' : 'text-orange-600'}`}
                 >
                   {b.name}
                 </button>
@@ -361,12 +361,12 @@ export default function Documents() {
                   <div 
                     key={item.id} 
                     onClick={() => item.type === 'folder' ? navigateTo(item) : null}
-                    className="group border border-slate-200 rounded-xl p-4 hover:border-blue-400 hover:shadow-md transition-all cursor-pointer bg-white flex flex-col justify-between h-32"
+                    className="group border border-slate-200 rounded-xl p-4 hover:border-orange-400 hover:shadow-md transition-all cursor-pointer bg-white flex flex-col justify-between h-32"
                   >
                     <div className="flex justify-between items-start mb-2">
-                      <div className="p-2.5 rounded-lg bg-slate-50 group-hover:bg-blue-50 transition-colors">
+                      <div className="p-2.5 rounded-lg bg-slate-50 group-hover:bg-orange-50 transition-colors">
                         {item.type === 'folder' 
-                          ? <MdFolder size={28} className="text-blue-500" />
+                          ? <MdFolder size={28} className="text-orange-500" />
                           : <MdInsertDriveFile size={28} className="text-amber-500" />
                         }
                       </div>
@@ -423,7 +423,7 @@ export default function Documents() {
                           >
                             <td className="px-4 py-3 flex items-center gap-3">
                               {item.type === 'folder' 
-                                ? <MdFolder size={20} className="text-blue-500" />
+                                ? <MdFolder size={20} className="text-orange-500" />
                                 : <MdInsertDriveFile size={20} className="text-amber-500" />
                               }
                               <span className="font-medium text-slate-800 truncate">{item.name}</span>
@@ -433,7 +433,7 @@ export default function Documents() {
                             <td className="px-4 py-3 text-slate-500 truncate">{item.size}</td>
                             <td className="px-4 py-3">
                                 <div className="flex items-center gap-2">
-                                    {item.type === 'file' && <button onClick={(e) => { e.stopPropagation(); handleDownload(item); }} title="Download"><MdDownload size={18} className="text-blue-500 hover:text-blue-700" /></button>}
+                                    {item.type === 'file' && <button onClick={(e) => { e.stopPropagation(); handleDownload(item); }} title="Download"><MdDownload size={18} className="text-orange-500 hover:text-orange-700" /></button>}
                                     {!item.is_virtual && <button onClick={(e) => { e.stopPropagation(); handleDelete(item); }} title="Delete"><MdDelete size={18} className="text-red-400 hover:text-red-600" /></button>}
                                 </div>
                             </td>
@@ -454,7 +454,7 @@ export default function Documents() {
               <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden shadow-2xl">
                   <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                       <div className="flex items-center gap-2 font-bold text-slate-800">
-                          <MdHistory size={24} className="text-blue-600" />
+                          <MdHistory size={24} className="text-orange-500" />
                           Activity History
                       </div>
                       <button onClick={() => setShowLogs(false)} className="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
@@ -465,7 +465,7 @@ export default function Documents() {
                               <p className="text-center text-slate-400 py-10">No activity recorded yet.</p>
                           ) : (
                               logs.map((log) => (
-                                  <div key={log.id} className="flex gap-4 border-l-2 border-blue-200 pl-4 py-1">
+                                  <div key={log.id} className="flex gap-4 border-l-2 border-orange-200 pl-4 py-1">
                                       <div className="min-w-[140px] text-xs text-slate-400 mt-1">
                                           {new Date(log.created_at).toLocaleString()}
                                       </div>

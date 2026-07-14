@@ -164,7 +164,7 @@ h1, h2, h3, h4, h5, h6, p {
 .search-bar input:focus {
   border-color: var(--primary-color);
   background-color: #fff;
-  box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+  box-shadow: 0 0 0 3px rgba(249,115,22,0.1);
 }
 
 .search-icon {
@@ -197,7 +197,7 @@ h1, h2, h3, h4, h5, h6, p {
   background-color: var(--primary-color);
   color: #fff;
 }
-.btn-primary:hover { background-color: #1d4ed8; }
+.btn-primary:hover { background-color: #ea580c; }
 
 .btn-outline {
   border-color: var(--border-color);

@@ -17,3 +17,6 @@ Thumbs.db
 # IDEs
 .idea/
 .vscode/
+
+# Redis dump
+*.rdb
